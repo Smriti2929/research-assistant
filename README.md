@@ -4,7 +4,7 @@ Retrieval-Augmented Generation (RAG) powered document question-answering system 
 ---
 
 🔗 Live Demo
-Frontend: <streamlit-link>
+Frontend: https://research-assistant-rvw6i2kgkdmrdu8mpsnvm8.streamlit.app/
 
 🔗 Backend API
 https://research-assistant-1-s6ak.onrender.com
