@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://research-assistant-1-s6ak.onrender.com"
 
 st.set_page_config(
     page_title= "Research Assistant",

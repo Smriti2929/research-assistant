@@ -3,6 +3,16 @@
 Retrieval-Augmented Generation (RAG) powered document question-answering system built with FastAPI, FAISS, Sentence Transformers, Gemini, and Streamlit.
 ---
 
+🔗 Live Demo
+Frontend: <streamlit-link>
+
+🔗 Backend API
+https://research-assistant-1-s6ak.onrender.com
+
+📖 API Documentation
+Swagger Docs:
+https://research-assistant-1-s6ak.onrender.com/docs
+
 ## ✨ Features
 
 ✅ PDF Upload & Processing
