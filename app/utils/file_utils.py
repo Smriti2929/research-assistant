@@ -1,6 +1,12 @@
 import json
+import os
 
 def save_chunks(chunks, file_path):
+
+    os.makedirs(
+        os.path.dirname(file_path),
+        exist_ok= True
+    )
 
     with open(
         file_path,

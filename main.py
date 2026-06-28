@@ -1,5 +1,9 @@
 import os
 
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("data", exist_ok=True)
+os.makedirs("vectorstore", exist_ok=True)
+
 from fastapi import FastAPI
 from fastapi import File, UploadFile
 from pydantic import BaseModel
