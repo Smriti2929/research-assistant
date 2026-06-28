@@ -9,13 +9,71 @@ st.set_page_config(
     layout = "wide"
 )
 
-st.title("📚 Research Assistant")
+#Session State
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Craeting Sidebar
+
+with st.sidebar:
+    st.title("📚 Research Assistant")
+    st.markdown("""
+Built with:
+- FastAPI
+- FAISS
+- Sentence Transformers
+- Gemini
+- Streamlit 
+""")
+    
+    st.divider()
+    st.subheader(
+        "Uploaded Documents"
+    )
+
+    documents = []
+
+    try:
+
+        response = requests.get(
+            f"{API_URL}/documents"
+        )
+
+        if response.status_code == 200:
+
+            result = response.json()
+            documents = result [
+                "documents"
+            ]
+            st.write(
+                f"Documents: {result['count']}"
+            )
+
+            for doc in documents:
+                st.write(
+                    f"📄 {doc}"
+                )
+    except:
+
+        st.warning(
+            "Backend not running"
+        )
+
+# Main Title                    
+
+st.title("📚 RAG Research Assistant")
 st.write(
-    "Upload PDFs and ask questions."
+    "Upload documents and chat with them."
+)
+
+#Upload Section
+st.subheader(
+    "Upload PDF"
 )
 
 uploaded_file = st.file_uploader(
-    "Upload PDF",
+    "Choose PDF",
     type= ["pdf"]
 )
 
@@ -37,151 +95,97 @@ if uploaded_file:
     if response.status_code == 200:
 
         st.success(
-            "PDF uploaded successfully!"
+            f"{uploaded_file.name} uploaded"
         )
 
-        st.json(
-            response.json()
-        )
-    else:
-        st.error(
-            "Upload failed."
-        )
-
-st.divider()
-
-st.header("Uploaded Documents") 
-
-documents = []
-
-try:
-
-    response = requests.get(
-        f"{API_URL}/documents"
-    )
-
-    if response.status_code == 200:
-        result = response.json()
-
-        documents = result[
-            "documents"
-        ]
-
-        st.write(
-            f"Total Documents: {result['count']}"
-        )
-        for doc in documents:
-            st.write(
-                f"📄 {doc}"
-            )
-
-except Exception as e:
-    
-    st.error(
-        f"Could not load documents: {e}"
-    )
-
-#searching single document 
-
-st.divider()
-
-st.header("Ask a Single Document")
+#Document Section
 
 if documents:
 
     selected_doc = st.selectbox(
-        "Selected a document",
+        "Select Document",
         documents
     )
 
-    question = st.text_input(
-        "Enter your question"
-    )
+# CHat History    
+st.divider()
 
-    if st.button(
-        "Ask Document"
+st.subheader("Chat") 
+
+for message in st.session_state.messages:
+    with st.chat_message(
+        message["role"]
     ):
+        st.markdown(
+            message["content"]
+        )
+
+#Chat I/p
+
+if documents:
+    prompt = st.chat_input(
+        "Ask a question ..."
+    )
+    if prompt:
+        st.session_state.messages.append(
+            {
+                "role": "user",
+                "content": prompt
+            }
+        )
+
+        with st.chat_message(
+            "user"
+        ):
+            st.markdown(prompt)
+
         payload = {
             "file_name": selected_doc,
-            "question": question
+            "question": prompt
         }
 
         response = requests.post(
             f"{API_URL}/ask",
-            json = payload
-        )
+            json= payload
+        ) 
 
         if response.status_code == 200:
-
             result = response.json()
 
-            st.subheader(
-                "Answer"
-            )
+            answer = result[
+                "answer"
+            ] 
 
-            st.success(
-                result["answer"]
-            )
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer
+                }
+            ) 
 
-            st.subheader(
-                "Retrieved Sources"
-            )
-
-            for source in result[
-                "sources"
-            ]:
-                
-                st.info(
-                    source
+            with st.chat_message(
+                "assistant"
+            ):
+                st.markdown(
+                    answer
                 )
-        else:
 
-            st.error(
-                "Question failed."
-            )
-    else:
-        st.warning(
-            "Upload a PDF first."
-        )        
+                if "sources" in result:
 
-# Searching Multiple documents 
+                    with st.expander(
+                        "Sources"
+                    ):
+                        for i, source in enumerate(
+                            result["sources"],
+                            start = 1
+                        ):
+                            st.markdown(
+                                f"### Source {i}"
+                            )
 
-st.divider()
+                            st.write(
+                                source
+                            )
 
-st.header(
-    "Search Across All Docuemnts"
-)
 
-global_question = st.text_input(
-    "Ask a question across all uploaded documents"
-)
 
-if st.button(
-    "Search All Documents"
-):
-    response = requests.post(
-        f"{API_URL}/ask-all",
-        json= {
-            "question": global_question
-        }
-    )
-
-    if response.status_code == 200:
-
-        result = response.json()
-
-        st.subheader(
-            "Answer"
-        )
-
-        st.success(
-            result["answer"]
-        )
-
-        st.write(
-            f"Documents searched: {result['document_searched']}"
-        )
-    else:
-        st.error(
-            "Search failed."
-        )    
