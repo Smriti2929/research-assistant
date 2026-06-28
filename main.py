@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi import File, UploadFile
 from pydantic import BaseModel
 
+from typing import List
+
 from app.services.multi_document_service import (
     get_document_names
 )
@@ -32,9 +34,14 @@ app = FastAPI(
 class ChatRequest(BaseModel):
     question: str
 
+class Message(BaseModel):
+    role: str
+    content: str
+
 class AskRequest(BaseModel):
     file_name: str
     question: str
+    chat_history: List[Message] = []
 
 class MultiAskRequest(BaseModel):
     question: str
@@ -139,12 +146,21 @@ def ask_document(request: AskRequest):
         request.question
     )
 
-    chunk_indices = search_index(
+    chunk_indices, distances = search_index(
         index,
         question_embedding
     )
 
+    confidence = max(
+        0,
+        round(
+            100 - distances[0],
+            2
+        )
+    )
+
     retrieved_chunks = []
+    retrieved_sources = []
 
     for idx in chunk_indices:
 
@@ -152,24 +168,38 @@ def ask_document(request: AskRequest):
             retrieved_chunks.append(
                 chunks[idx]
             )
+            retrieved_sources.append(
+                request.file_name
+            )
 
     context = "\n\n".join(
         retrieved_chunks
     )
 
+    history_text = ""
+
+    for msg in request.chat_history[-6:]:
+        history_text += (
+            f"{msg.role}: "
+            f"{msg.content}\n"
+        )
+
     prompt = f"""
-You are a document research assistant.
+You are a helpful research assistant.
 
-Answer ONLY using the provided context. 
+Use the chat history and document context to answer the user's question.
 
-If the answer cannot be found in the context, say:
+If the answer is not present in the document context, say:
 
 "I could not find that information in the document."
 
-Context
+Chat History:
+{history_text}
+
+Document Context:
 {context}
 
-Question:
+Current Question:
 {request.question}
 """
     
@@ -180,10 +210,14 @@ Question:
     return {
         "question": request.question,
         "answer": answer,
+        "confidence": confidence,
         "chunks_used": len(
             retrieved_chunks
         ),
-        "sources": retrieved_chunks
+        "sources": retrieved_chunks,
+        "documents": list(
+            set(retrieved_sources)
+        )
     }
 
 @app.post("/ask-all")

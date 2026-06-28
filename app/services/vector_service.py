@@ -45,4 +45,7 @@ def search_index(
         top_k
     )
 
-    return indices[0]    
+    return(
+        indices[0].tolist(),
+        distances[0].tolist()
+    )

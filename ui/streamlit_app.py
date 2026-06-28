@@ -14,6 +14,8 @@ st.set_page_config(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+documents = []
+
 # Craeting Sidebar
 
 with st.sidebar:
@@ -26,13 +28,47 @@ Built with:
 - Gemini
 - Streamlit 
 """)
+    st.metric(
+        "Documents",
+        len(documents)
+    )
+
+    st.metric (
+        "Messages",
+        len(
+            st.session_state.messages
+        )
+    )
+    
+    if st.button(
+        "🗑️ Clear Chat"
+    ):
+        st.session_state.messages = []
+        st.rerun()
+
+    chat_text = ""
+
+    for msg in st.session_state.messages:
+        chat_text += (
+            f"{msg['role']}: "
+            f"{msg['content']}\n\n"
+        )
+
+    st.download_button(
+        label = "📥 Export Chat",
+        data = chat_text,
+        file_name= "chat_history.txt",
+        mime= "text/plain"
+    )        
+
+    st.write(
+        f"Messages: {len(st.session_state.messages)}"
+    )    
     
     st.divider()
     st.subheader(
         "Uploaded Documents"
     )
-
-    documents = []
 
     try:
 
@@ -141,7 +177,8 @@ if documents:
 
         payload = {
             "file_name": selected_doc,
-            "question": prompt
+            "question": prompt,
+            "chat_history": st.session_state.messages
         }
 
         response = requests.post(
@@ -154,7 +191,12 @@ if documents:
 
             answer = result[
                 "answer"
-            ] 
+            ]
+
+            confidence = result.get(
+                "confidence",
+                0
+            ) 
 
             st.session_state.messages.append(
                 {
@@ -170,11 +212,27 @@ if documents:
                     answer
                 )
 
+                st.caption(
+                    f"Confidence: {confidence}%"
+                )
+
                 if "sources" in result:
 
                     with st.expander(
                         "Sources"
                     ):
+                        if "documents" in result:
+                            st.markdown(
+                                "### Documents Used"
+                            )
+
+                            for doc in result[
+                                "documents"
+                            ]:
+                                st.write(
+                                    f"📄 {doc}"
+                                )
+                                
                         for i, source in enumerate(
                             result["sources"],
                             start = 1
@@ -183,8 +241,9 @@ if documents:
                                 f"### Source {i}"
                             )
 
-                            st.write(
-                                source
+                            st.code(
+                                source,
+                                language = "text"
                             )
 
 
